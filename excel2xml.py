@@ -8,14 +8,14 @@ import dicttoxml
 # CLI arguments
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                  description='Convert Excel to XML. Defaults to stdin stdout.')
-parser.add_argument('infile', nargs='?',
-                    type=argparse.FileType('rb'),
-                    default=sys.stdin,
-                    help='input .xlsx input file')
-parser.add_argument('outfile', nargs='?',
-                    type=argparse.FileType('w'),
-                    default=sys.stdout,
-                    help='the output .xml file')
+parser.add_argument('--infile',
+                    type=str,
+                    default='-',
+                    help='filename, url, or "-" for stdin')
+parser.add_argument('--outfile',
+                    type=str,
+                    default='-',
+                    help='filename, or "-" for stdout')
 parser.add_argument('--sheetnum',
                     type=int,
                     default=0,
@@ -48,8 +48,20 @@ parser.set_defaults(cdata=True)
 
 args = parser.parse_args()
 
+# map in/out files
+infile = sys.stdin
+outfile = sys.stdout
+if args.infile != '-':
+    infile = args.infile
+if args.outfile != '-':
+    try:
+        outfile = open(args.outfile, 'w')
+    except Exception as e:
+        print(e)
+        sys.exit(1)
+
 # Convert EXCEL to DataFrame
-df = pd.read_excel(args.infile,
+df = pd.read_excel(infile,
                    sheetname=args.sheetname or args.sheetnum,
                    skiprows=args.skiprows,
                    header=args.header,
@@ -63,4 +75,4 @@ obj = json.loads(df.to_json(orient='records', force_ascii=True))
 xml = dicttoxml.dicttoxml(obj, attr_type=False, cdata=args.cdata)
 
 # Save encoded results
-args.outfile.write(xml.decode('utf-8'))
+outfile.write(xml.decode('utf-8'))
